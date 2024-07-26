@@ -1,0 +1,140 @@
+Skrypt przed wysłaniem żądania (Pre-request Script):
+
+// Pobranie listy plików i aktualnego indeksu
+let fileData = pm.environment.get("fileList");
+let fileList = JSON.parse(fileData).files;
+let currentIndex = pm.environment.get("currentIndex");
+
+// Sprawdzenie, czy indeks nie przekracza liczby plików
+if (currentIndex >= fileList.length) {
+    console.log("Wymagana aktualizacja listy plików.");
+    postman.setNextRequest(null);  // Zatrzymanie kolejnych żądań
+} else {
+    // Ustawienie aktualnego pliku
+    let currentFile = fileList[currentIndex];
+    pm.environment.set("currentFile", currentFile);
+
+    // Inkrementacja indeksu
+    currentIndex++;
+    pm.environment.set("currentIndex", currentIndex);
+}
+
+
+Skrypt po wykonaniu żądania (Test Script):
+
+// Testy po wykonaniu żądania
+let currentFile = pm.environment.get("currentFile");
+console.log("Aktualnie przetwarzany plik:", currentFile);
+
+// Przykładowa asercja (jeśli jest potrzebna)
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+Konfiguracja body żądania:
+Body - form-data. file i ustaw jego typ na File, wybierz dowolny plik :)
+
+Przygotowanie listy plików w środowisku Postmana:
+Dodaj zmienną środowiskową fileList z wartością JSON, która zawiera listę plików z ich ścieżkami oraz zmienną currentIndex z wartością początkową 0.
+
+json
+{
+  "files": [
+    "/path/to/file1",
+    "/path/to/file2",
+    "/path/to/file3",
+    "/path/to/file4",
+    "/path/to/file5",
+    "/path/to/file6",
+    "/path/to/file7",
+    "/path/to/file8",
+    "/path/to/file9",
+    "/path/to/file10"
+  ]
+}
+
+
+Pommocnicze:
+Skrypt do tworzenia plików w powershel CopyFilesWithJson.ps1:
+
+
+# Parametr: Ścieżka do oryginalnego pliku
+param (
+    [string]$filePath
+)
+
+# Sprawdź, czy plik istnieje
+if (-Not (Test-Path -Path $filePath)) {
+    Write-Host "Podany plik nie istnieje."
+    exit
+}
+
+# Pobierz informacje o pliku
+$file = Get-Item $filePath
+$directory = $file.DirectoryName
+$baseName = [System.IO.Path]::GetFileNameWithoutExtension($file)
+$extension = $file.Extension
+
+# Pobierz aktualną datę
+$date = Get-Date
+$dateString = $date.ToString("yyyyMMdd")
+
+# Licznik plików
+$counter = 1
+
+# Lista ścieżek do wygenerowanych plików
+$filePaths = @()
+
+# Tworzenie kopii pliku
+for ($i = 1; $i -le 1000; $i++) {
+    $newFileName = "{0}{1}{2:0000}{3}" -f $baseName, $dateString, $counter, $extension
+    $newFilePath = Join-Path $directory $newFileName
+
+    if (Test-Path -Path $newFilePath) {
+        Write-Host "Plik o nazwie $newFileName już istnieje."
+    } else {
+        Copy-Item -Path $filePath -Destination $newFilePath
+        # Dodaj ścieżkę do listy
+        $filePaths += $newFilePath
+    }
+
+    $counter++
+}
+
+# Ścieżka do pliku JSON
+$jsonFilePath = Join-Path $directory "$baseName$($dateString)_generated_files.json"
+
+# Zapisz listę ścieżek do pliku JSON
+$jsonContent = $filePaths | ConvertTo-Json -Compress
+Set-Content -Path $jsonFilePath -Value $jsonContent
+
+Write-Host "Pliki zostały skopiowane i zapisane w $jsonFilePath"
+pause
+
+
+URUCHAMIANIE SKRYPTU:
+
+w powershell CopyFilesWithJson.ps1 -filepath ścieżka/do/pliku/testowego.pdf
+
+skrypt utworzy 1000 plików pdf + listę plików w pliku json.
+
+Wygenerowany plik json przerób na format:
+
+{
+  "files": [
+    "/path/to/file1",
+    "/path/to/file2",
+    "/path/to/file3",
+    ...
+ 
+  ]
+}
+
+Całość wklej do zmiennej fileList. 
+
+
+
+
+
+
+
